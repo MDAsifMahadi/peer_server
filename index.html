@@ -1,18 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
-  <body>
-    <button id="btn">Print</button>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PeerJS Audio Call</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    audio {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>PeerJS অডিও কল</h1>
+  <div>
+    <label for="peer-id">আপনার Peer ID:</label>
+    <input type="text" id="peer-id" readonly>
+  </div>
+  <div>
+    <label for="remote-id">অন্য পিয়ারের Peer ID:</label>
+    <input type="text" id="remote-id">
+    <button id="connect-btn">কানেক্ট করুন</button>
+  </div>
+  <div>
+    <h2>অডিও:</h2>
+    <audio id="local-audio" autoplay muted></audio>
+    <audio id="remote-audio" autoplay></audio>
+  </div>
 
-    <script>
-      const btn = document.getElementById("btn");
-      btn.addEventListener("click", () => {
-        print();
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  <script>
+    // PeerJS ক্লায়েন্ট তৈরি করুন
+    const peer = new Peer({
+      host: 'localhost',
+      port: 9000,
+      path: '/myapp'
+    });
+
+    // DOM এলিমেন্ট সিলেক্ট করুন
+    const peerIdInput = document.getElementById('peer-id');
+    const remoteIdInput = document.getElementById('remote-id');
+    const connectBtn = document.getElementById('connect-btn');
+    const localAudio = document.getElementById('local-audio');
+    const remoteAudio = document.getElementById('remote-audio');
+
+    // Peer ID দেখান
+    peer.on('open', (id) => {
+      peerIdInput.value = id;
+    });
+
+    // অডিও স্ট্রিম শুরু করুন
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => {
+        localAudio.srcObject = stream;
+
+        // অন্য পিয়ারের সাথে কানেক্ট করুন
+        connectBtn.addEventListener('click', () => {
+          const remoteId = remoteIdInput.value;
+          const call = peer.call(remoteId, stream);
+
+          call.on('stream', (remoteStream) => {
+            remoteAudio.srcObject = remoteStream;
+          });
+        });
+
+        // অন্য পিয়ার থেকে কল গ্রহণ করুন
+        peer.on('call', (call) => {
+          call.answer(stream);
+
+          call.on('stream', (remoteStream) => {
+            remoteAudio.srcObject = remoteStream;
+          });
+        });
+      })
+      .catch((error) => {
+        console.error('অডিও স্ট্রিম পাওয়া যায়নি:', error);
       });
-    </script>
-  </body>
+  </script>
+</body>
 </html>
